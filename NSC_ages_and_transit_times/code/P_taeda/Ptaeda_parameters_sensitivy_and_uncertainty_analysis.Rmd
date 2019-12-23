@@ -1,0 +1,461 @@
+---
+title: "P. taeda_snesitivity_and_uncertainty_analysis"
+author: "David_Herrera"
+date: "10/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This Markdown present the code used for calculating the parameters related to the model presented in the Figure 2 of the manucript "Non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees" for the species P. taeda. The parameters are calculated implementing the model "Allometrically Constrained Growth and
+Carbon Allocation" ACGCA (Ogle and Pacala 2009). Here it is also presented the code for running the analysis of the uncertainties related to the model parameters in the model output (mean ages and mean transit times) and the sensitivity of the mean ages and transit time to numerical changes in those parametes. 
+
+### packages needed 
+```{r}
+library(SoilR)
+library(boot)
+library(FME) 
+library(sensitivity)
+```
+
+set the directory where all the auxiliary files are stored. The functions for running the ACGCA model are in the sicript "script_functions_model_ogleV2.R" 
+
+```{r}
+setwd("/Users/_dherrera/NSC_ages_and_transit_times/code/P_taeda/")
+source("/Users/_dherrera/NSC_ages_and_transit_times/code/script_functions_model_ACGCA.R")
+
+```
+
+## P. taeda parameter calculation 
+
+Paramogle is the dataset of the parameters provided for Ogle and Pacala (2009) for running the model ACGCA and estimating the parameter for the model presented in the figure 2. the vector was contructed with the mean values for P. taeda (first row) and A. rubrum (second row). From here on we will just use the parameters corresponding to P. taeda. 
+
+
+```{r}
+
+paramogle=data.frame(Crwparam=c(0.308, 0.365),
+                     Radeff=c(4.5, 6.75),
+                     Pmax=c(2100, 2100),
+                     Cgl=c(1.51, 1.45),
+                     Cgr=c(1.30, 1.25),
+                     Crw=c(1.47, 1.37),
+                     Rml=c(0.95, 1.25),
+                     Rmr=c(0.75, 0.75),
+                     Rms=c(0.025, 0.025),
+                     Sl=c(0.33, 1),
+                     So=c(0.05, 0.05),
+                     Sr=c(0.5, 1),
+                     dl=c(0.11, 0.095),
+                     dr=c(0.08, 0.15),
+                     Stmaxspw=c(265000, 131000),
+                     denspw=c(6.67e-7, 6.67e-7),
+                     Xylspwrate=c(0.62, 0.12),
+                     k=c(0.55, 0.7),
+                     Maxcrwdepth=c(0.95, 0.95),
+                     pa=c(380000, 525000),
+                     pb=c(380000, 525000),
+                     pr=c(200000, 160000),
+                     rootrad=c(0.00027, 0.00015),
+                     SLA=c(0.0060, 0.0141),
+                     n=c(0.71, 0.64),
+                     nb=c(0.045, 0.045),
+                     fiH=c(220, 263),
+                     lamb=c(0.95, 0.95),
+                     Hmax=c(42, 27.5),
+                     SWmax=c(0.06, 0.10),
+                     f1=c(4, 4),
+                     f2=c(2100, 7000), 
+                     lambs=c(0.95, 0.95),
+                     lambh=c(0.95, 0.95),
+                     R0=c(1.434, 1.909),
+                     R40=c(3.873, 5.592),
+                     m=c(0.95, 0.95))
+
+paraPtadea=paramogle[1,] ### here we choosed the parameters for P. taeda. 
+```
+
+
+Then we ran the ACGCA model for 800 years (niter) to assure that we selected the parameters at the steady state of the system
+```{r}
+
+
+ # r1=0.0001### inital value for radious
+ # respPtadea=ACGCAtargetallom(r1=r1, dr=0, t=0, paraPtadea=paraPtadea, Cs=c(0))## initial conditions 
+ # respPtadea4=modhealty(initcond = respPtadea, niter=800, param=paraPtadea, tao=0.000001, errori=10000)
+ # respPtadea4=respPtadea4[-c(nrow(respPtadea4)),] ## the last row is incomplete then we eliminated.
+
+
+  load("respPtaeda_PmaxV6.Rda")# The results of the previous simulation were saved in this file and can be laded here. 
+ 
+```
+
+Then we calculated the fluxes, the pool sizes and the stransfer coeficients for the model in Figure 2
+
+```{r}
+
+## We took then the fluxes and stocks in stady state: the values at the point of 700 years of the simulations of the ACGCA model
+
+flux300yr=respPtadea4[which(respPtadea4$t==700),] 
+
+
+## With this values we proceeded to calculate the transfer coeficients for the model used in the manuscript and described in Figure 2
+
+E=flux300yr$E+flux300yr$Rm ##g of glucose 
+
+## fluxes for leave compartment 
+
+PFlT=flux300yr$Fl*flux300yr$E; ## PFlT is the amount of g glucose allocated to leaves 
+SsL=PFlT # SsL is the fast cycling pool of sugars in the leaves, and 
+Gl=PFlT*(paraPtadea["Cgl"]/(paraPtadea["Cgl"]+paraPtadea["dl"])); Gl### grams of glucose per year invested in constructing leaves (flux of glucose to grow leaves)
+FB=flux300yr$Bl## biomass (g dw) in the leaves 
+biomlgdw=PFlT/(paraPtadea["Cgl"]+paraPtadea["dl"]); biomlgdw## grams of wood constructed from the allocated carbon to leaves
+stl=PFlT*(paraPtadea["dl"]/(paraPtadea["Cgl"]+paraPtadea["dl"])); stl## grams of glucose per year stored in the leaves 
+senlTgdw=paraPtadea["Sl"]*flux300yr$Bl; senlTgdw## g of wood lost in litter fall per year 
+senlT=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["Cgl"] ## g of gluc per year lost in the litter fall 
+dlSl=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["dl"]; dlSl ##g gluc per year translocated to the E pool from the storage
+FSNSC=flux300yr$Cl ## size of the storage pool in the leaves 
+
+
+## fluxes for fine root compartment 
+PFrT=flux300yr$Fr*flux300yr$E; PFrT## amount of g glucose allocated to roots per year 
+Ssr=PFrT ## g gluc in the fast cycling pool of sugar in the roots
+Gr=PFrT*(paraPtadea["Cgr"]/(paraPtadea["Cgr"]+paraPtadea["dr"])); Gr## grams of wood constructed from the allocated carbon to roots
+biomrgdw=PFrT/(paraPtadea["Cgr"]+paraPtadea["dr"]); biomrgdw## grams of wood constructed from the allocated carbon to roots
+strr=PFrT*(paraPtadea["dr"]/(paraPtadea["Cgr"]+paraPtadea["dr"])); strr## grams of glucose per year stored in the roots 
+senrTgdw=paraPtadea["Sr"]*flux300yr$Br## g of wood lost in senescence of fine roots 
+senrT=paraPtadea["Sr"]*flux300yr$Br*paraPtadea["Cgr"] ## g of glucose lost in senescence of fine roots 
+drSr=paraPtadea["Sr"]*flux300yr$Br*paraPtadea["dr"];drSr ## g of glucose reallocate to the transient comparment (E) from roots 
+RSNSC=flux300yr$Cr## size of the sotrage compartment in roots
+
+
+## fluxes for woody compartments 
+
+PFtT=flux300yr$Ft*flux300yr$E; PFtT## amount of g glucose allocated to the main trunk
+SsT=PFtT## g of glucose allocated to the fast cycling pool in the trunk 
+Gt=PFtT*(paraPtadea["Crw"]/(paraPtadea["Crw"]+flux300yr$ds))#g of glucose per year allocated to grow wood in the trunk 
+SB=flux300yr$Bts+flux300yr$Bth ## g of wood in the trunk (biomase of the main trunk)
+strt=PFtT*(flux300yr$ds/(paraPtadea["Crw"]+flux300yr$ds))## grams of glucose per year allocated to storage in the trunk 
+
+## fluxes for other wood compartment (branches and coarse roots)
+PFoT=flux300yr$Fo*flux300yr$E; PFoT## amount of g glucose allocated to other woody compartments per year 
+SsO=PFoT ## size of the fast cycling pool of branches and coarse roots  in g of glucose
+Go=PFoT*(paraPtadea["Crw"]/(paraPtadea["Crw"]+flux300yr$ds))### grams of glucose per year invested in constructing branches and coarse roots
+Bo=flux300yr$Bos+flux300yr$Boh ## g of wood in the branches and coarse root
+senoTgdw=PFoT/(paraPtadea["Crw"]+flux300yr$ds)#g of wood per year lost to close steady state
+senoT=PFoT/(paraPtadea["Crw"]+flux300yr$ds)*paraPtadea["Crw"]## g of glucose lost to close steady state
+stro=PFoT*(flux300yr$ds/(paraPtadea["Crw"]+flux300yr$ds))## g of glucose per year allocated to storage inthe wood
+So=(PFoT/(paraPtadea["Crw"]+flux300yr$ds))/Bo## g of wood per year lost in litter fal from branches and coarse roots 
+dsSo=flux300yr$ds*So*flux300yr$Bos### g of gluc per year retranslocated to E from branches and coarse roots 
+dwSo=strt+stro-dsSo## g of gluc per year lost in litterfall 
+SSNSC=flux300yr$Cs## glocose stored in wood of branches and coarse roots
+
+### calculation os the rates, parameters to use the matricial form of the model 
+
+ratesPtadea=c(Rm=as.numeric(flux300yr$Rm/E),
+              Fl=as.numeric(PFlT/E),
+              Fr=as.numeric(PFrT/E),
+              Ft=as.numeric(PFtT/E),
+              Fo=as.numeric(PFoT/E),
+              PGl=as.numeric(Gl/SsL),
+              PGr=as.numeric(Gr/Ssr),
+              PGo=as.numeric(Go/SsO),
+              PGt=as.numeric(Gt/SsT),
+              Pstl=as.numeric(stl/SsL),
+              Pstrr=as.numeric(strr/Ssr),
+              Pstrt=as.numeric(strt/SsT),
+              Pstro=as.numeric(stro/SsO),
+              PdlSl=as.numeric(dlSl/flux300yr$Cl),
+              PdrSr=as.numeric(drSr/flux300yr$Cr),
+              PdsSo=as.numeric(dsSo/flux300yr$Cs),
+              PSr=as.numeric(senrTgdw/flux300yr$Br),
+              PSl=as.numeric(senlTgdw/flux300yr$Bl),
+              PSo=as.numeric(senoTgdw/Bo),
+              PSt=0.001,
+              PdwSo=as.numeric(dwSo/flux300yr$Cs)
+)
+
+ratesPtadea=as.data.frame(t(ratesPtadea)) ### this are the parameters o run the model in Fig 2 and obtain the results for P. taeda shown in the manuscript. This parameter were used in the phyton script (P.taeda_ages_and_transit_times.ipynb) for the computation of ages and transit times. 
+```
+
+## Sensitivity Analysis 
+
+For the sensitivity analysis we used the parameters calculated above and we specified a wide variability range to see the behavior of the output model in a wide range of parameters. 
+```{r}
+
+ratesPtadea2=c(Rm=as.numeric(flux300yr$Rm/E),
+              Fl=as.numeric(PFlT/E),
+              Rl=as.numeric(PFrT/E),
+              Sl=as.numeric(PFtT/E),
+              BRl=as.numeric(PFoT/E),
+              Gf=as.numeric(Gl/SsL),
+              Gr=as.numeric(Gr/Ssr),
+              Gbr=as.numeric(Go/SsO),
+              Gs=as.numeric(Gt/SsT),
+              Sf=as.numeric(stl/SsL),
+              Sr=as.numeric(strr/Ssr),
+              Ss=as.numeric(strt/SsT),
+              Sbr=as.numeric(stro/SsO),
+              Cf=as.numeric(dlSl/flux300yr$Cl),
+              Cr=as.numeric(drSr/flux300yr$Cr),
+              Cs=as.numeric(dsSo/flux300yr$Cs),
+              Lr=as.numeric(senrTgdw/flux300yr$Br),
+              Lf=as.numeric(senlTgdw/flux300yr$Bl),
+              Lbr=as.numeric(senoTgdw/Bo),
+              Ls=0.001,
+              LSs=as.numeric(dwSo/flux300yr$Cs)
+)
+```
+
+Load the functions for sensitivity and uncertainty analysis 
+```{r}
+source("/Users/_dherrera/NSC_ages_and_transit_times/code/script_function_senes_uncert_ACGCA.R")
+```
+
+The sensititvity analysis based on the Elementary Effect (Morrist 1991) was run using the function morris from the FME package  
+```{r}
+
+sensmeanage1 <- morris(model = systageogleV2, factors = names(ratesPtadea2), r = 100, binf = ratesPtadea2*0.1,
+                       bsup =ratesPtadea2*2.5, 
+                       design = list(type = "oat", levels = 150, grid.jump = 50))
+
+mu <- apply(sensmeanage1$ee, 3, function(M){
+  apply(M, 2, mean)
+})
+
+mu.star <- apply(abs(sensmeanage1$ee), 3, function(M){
+  apply(M, 2, mean)
+})
+sigma <- apply(sensmeanage1$ee, 3, function(M){
+  apply(M, 2, sd)
+})
+
+```
+
+Plots for the sensitivity analysis
+```{r}
+#sensitivity for the mean age
+
+png("Ptaeda_Mean_Age.png", width=400, height =400)
+par(mar=c(5, 5,4,4))
+plot(mu.star[,1], sigma[,1], main= "Mean Age",
+     xlab=expression(paste(mu^"*")), ylab = expression(sigma),
+     ylim=c(0, max(sigma[,1])+2),xlim=c(0, max(mu.star[,1])+2),
+     cex=2, cex.axis=2, cex.lab=2, cex.main=3, pch=18 )
+text(mu.star[,1], sigma[,1], row.names(mu),pos=3, cex=1.3)
+dev.off()
+
+
+png("Ptaeda_Mean_transit_time.png", width=400, height =400)
+par(mar=c(5, 5,4,4))
+plot(mu.star[,2], sigma[,2], main= "Mean Transit Time",
+     xlab=expression(paste(mu^"*")), ylab = expression(sigma),
+     ylim=c(0, max(sigma[,2]+2)),xlim=c(0, max(mu.star[,2])+0.1),
+     cex=2, cex.axis=2, cex.lab=2, cex.main=3, pch=18 )
+text(mu.star[,2], sigma[,2], row.names(mu),pos=3, cex=1.3)
+dev.off()
+
+
+```
+
+plots for the trend of the sensitivity 
+```{r}
+
+### plots for the mean age
+x=as.vector(sensmeanage1$X[,"LSs"])
+y=sensmeanage1$y[,1]
+
+m2=nls(y~x^z, start=list(z=0.1))
+y2=sort(x)^-0.6005
+
+par(mar=c(5,5,2,2))
+png("Ptaeda_MeanAge_Vs_LSs", width = 350, height = 400)
+par(mar=c(5,5,2,2))
+plot(sensmeanage1$X[,"LSs"],sensmeanage1$y[,1], ylab="NSC system Man Age",
+     xlab= "LSs", cex.axis=2, cex.lab=2, pch=18)
+lines(sort(x), y2, col="red", lwd=2)
+dev.off()
+
+png("Ptaeda_MeanAge_Vs_Sbr", width = 350, height = 400)
+par(mar=c(5,5,2,2))
+plot(sensmeanage1$X[,"Sbr"], sensmeanage1$y[,1], ylab = "NSC system Man Age",
+     xlab = "Sbr",  cex.axis=2, cex.lab=2, pch=18)
+abline(lm(sensmeanage1$y[,1] ~ sensmeanage1$X[,"Sbr"]),col="red", lwd=2)
+dev.off()
+
+
+### plots for mean transit time
+
+xGbr=as.vector(sensmeanage1$X[,"Gbr"])
+yGbr=sensmeanage1$y[,2]
+
+mGbr=nls(yGbr~b*xGbr^a, start=list(b=1,a=1))
+yGbr2=2.3499*sort(xGbr)^-0.6271
+
+png("Ptaeda_Meantransittime_Vs_Gbr", width = 350, height = 400)
+par(mar=c(5,5,2,2))
+plot(sensmeanage1$X[,"Gbr"], sensmeanage1$y[,2], ylab = "NSC system Mean Transit Time",
+     xlab = "Gbr",  cex.axis=2, cex.lab=2, pch=18)
+lines(sort(xGbr), yGbr2, col="red", lwd=2)
+dev.off()
+
+png("Ptaeda_Meantransittime_Vs_Sbr", width = 350, height = 400)
+par(mar=c(5,5,2,2))
+plot(sensmeanage1$X[,"Sbr"], sensmeanage1$y[,2], ylab = "NSC system Mean Transit Time",
+     xlab = "Sbr",  cex.axis=2, cex.lab=2, pch=18)
+abline(lm(sensmeanage1$y[,2] ~ sensmeanage1$X[,"Sbr"]),col="red", lwd=2)
+dev.off()
+
+
+```
+
+
+## Uncertainty analysis 
+
+We defined the range of variability of the parameters for the ACGCA model for P. taeda. This ranged were extracted from the supplementary inforamtion provided by Ogle and Pacala 2009. 
+
+```{r}
+paramogle_range=data.frame(Crwparam=c(0.308, 0.300, 0.316),
+                     Radeff=c(4.5, 4, 5),
+                     Pmax=c(2100, 2100, 2100),
+                     Cgl=c(1.51, 1.44, 1.59),
+                     Cgr=c(1.30, 1.22, 1.38),
+                     Crw=c(1.47, 1.40, 1.54),
+                     Rml=c(0.95, 0.47, 1.43),
+                     Rmr=c(0.75, 0.33, 1.17),
+                     Rms=c(0.025,0.017, 0.033),
+                     Sl=c(0.33, 0.2, 0.5),
+                     So=c(0.05, 0.02, 0.09),
+                     Sr=c(0.5, 0.25, 1),
+                     dl=c(0.11, 0.06, 0.16),
+                     dr=c(0.08, 0.03, 0.13),
+                     Stmaxspw=c(265000, 200000, 330000),
+                     denspw=c(6.67e-7, 6.67e-7, 6.67e-7),
+                     Xylspwrate=c(0.62, 0.59, 0.65),
+                     k=c(0.55, 0.36, 0.64),
+                     Maxcrwdepth=c(0.95, 0.95, 0.95),
+                     pa=c(380000, 350000, 410000),
+                     pb=c(380000, 350000, 410000),
+                     pr=c(200000, 120000, 280000),
+                     rootrad=c(0.00027, 0.00018, 0.00036),
+                     SLA=c(0.0060, 0.0052, 0.0069),
+                     n=c(0.71, 0.62, 0.8),
+                     nb=c(0.045, 0.016, 0.066),
+                     fiH=c(220, 196, 225),
+                     lamb=c(0.95, 0.90, 1),
+                     Hmax=c(42, 40, 44),
+                     SWmax=c(0.06, 0.04, 0.08),
+                     f1=c(4, 2, 6),
+                     f2=c(2100, 1700, 2500), 
+                     lambs=c(0.95, 0.90, 1),
+                     lambh=c(0.95, 0.90, 1),
+                     R0=c(1.434, 1.299, 1.669),
+                     R40=c(3.873, 3.013,  4.730),
+                     m=c(0.95, 0.95, 0.95))
+
+rownames(paramogle_range)=c("mean", "min", "max")
+
+```
+
+
+We prepared the parameters to feer the function modCRL for the Monte Carlo Simulations (MCS) and run the model to propagate the uncertainty from the ACGCA model parameters provided by Klein and Hoch 2009 to the compartmental model presented in figure 2 of te manuscript. 
+```{r}
+pars1_l=list()
+for(i in 1:ncol(paramogle_range)){
+  pars1_l[i]=paramogle_range[1,i]
+}
+names(pars1_l)=names(paramogle_range)
+
+parRanges=t(paramogle_range[c(2,3),])
+
+# we choose the independent parameters to propagate the uncertainty 
+# MCS_for_fluxes_steady_sate_Arub = modCRL(func = fluxes_steadystate_ogly,
+#                                       parms = pars1_l,
+#                                       parRange = parRanges[c(4:14,17,23:24,30),])
+# 
+##The results of the function can be loaded as 
+load("MCS_fluxes_Ptaeda_steadystate3.Rda")
+
+```
+
+With this MCS we calculated the parameter mean, variance and standard deviation for the model presented in the fig 2 of our manuscript, and then run another MCS with this parameter values to propagate the uncetainty to our model output: Mean ages and mean transit time
+
+```{r}
+
+variance_pars=apply(MCS_for_fluxes_steady_sate3, 2, var)
+mean_pars=apply(MCS_for_fluxes_steady_sate3, 2, mean) 
+sd_pars=apply(MCS_for_fluxes_steady_sate3, 2, sd)
+min_pars=apply(MCS_for_fluxes_steady_sate3, 2, min)
+
+flux_steady_state=as.data.frame(t(mean_pars))
+
+### we calculated the transfer coeficients of the model in figure 2 based in the mean values of the parametes given by the ACGCA model. Same parameters given in the manuscript. 
+transfer_coef_mean_Ptaeda=transfer_coeficients_calculation(flux_steady_state)
+
+### we calcualted the parameters set of the model in Fig.2 corresponding to each realization of the MCS ran for the ACGCA model.  
+transfer_coef_simulations=data.frame(matrix(nrow = 1, ncol = 21))
+names_manuscript=c("Rm",  "Fl",  "Rl",  "Sl",  "BRl", "Gf",  "Gr",  "Gbr", "Gs",  "Sf",
+                   "Sr",  "Ss",  "Sbr", "Cf",  "Cr", "Cs",  "Lr",  "Lf",  "Lbr", "Ls",  "LSs")
+for (i in 1:nrow(MCS_for_fluxes_steady_sate3)){
+  transfer_coef_simulations[i,]=transfer_coeficients_calculation(MCS_for_fluxes_steady_sate3[i,])
+}
+names(transfer_coef_simulations)=names_manuscript
+
+
+## we estimated then the mean, the variance and the sd for the transfer coeficients of the model in fig 2
+
+mean_transfer_coeficients=apply(transfer_coef_simulations,2,mean)
+var_tansfer_coeficients=apply(transfer_coef_simulations, 2, var)
+sd_transfer_coeficients=apply(transfer_coef_simulations, 2, sd)
+
+```
+
+
+Now we progapate this uncertainties to our model output
+
+```{r}
+## we prepare again the list of model parameters to feed the modCRK function 
+
+pars1_l2=list()
+for(i in 1:length(mean_transfer_coeficients)){
+  pars1_l2[i]=mean_transfer_coeficients[i]
+}
+names(pars1_l2)=names(mean_transfer_coeficients)
+
+## we ran the MCS for the parameters that had the most influential effect in the model output, which were identified in the sensitivity analysis. 
+
+# MCS_meanage_Arubrum <- modCRL(func = systageogleV3, parms = pars1_l2, parMean = mean_transfer_coeficients[c(21,16,8,13)],
+#                              parCovar =diag(var_tansfer_coeficients[c(21,16,8,13)]),
+#                              dist = "norm", num = 1000)
+
+## the results for this MCS can be loaded
+load("MCS_meanage_Ptaeda.rda")
+
+## the standard statistics can be calcualted as
+sd_Ptaeda_meanage=apply(MCS_meanage_Ptaeda,2,sd)
+names(sd_Ptaeda_meanage)=names(MCS_meanage_Ptaeda)
+mean_Ptaeda_meanage=apply(MCS_meanage_Ptaeda,2,mean)
+
+```
+
+With these resuls we built the plot that is part of the supplementary information of the manuscript. 
+
+```{r}
+png("Ptaeda_meanSysAgebypool_uncertianty.png",
+        width = 900,
+        height = 700)
+par(mfrow=c(2,5), mar=c(5,5,2,2))
+hist(MCS_meanage_Ptaeda$meansystemage, main = "", xlab = "Mean System Age", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$meantransittime, main = "", xlab = "Mean Transit Time", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$E, main = "", xlab = "E", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$FLNSC, main = "", xlab = "FLNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$RLNSC, main = "", xlab = "RLNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$BRLNSC, main = "", xlab = "BRLNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$SLNSC, main = "", xlab = "SLNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$FSNSC, main = "", xlab = "FSNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$RSNSC, main = "", xlab = "RSNSC", breaks = 50, cex.axis=2, cex.lab=2)
+hist(MCS_meanage_Ptaeda$SSNSC, main = "", xlab = "SSNSC", breaks = 50, cex.axis=2, cex.lab=2)
+dev.off()
+
+```
