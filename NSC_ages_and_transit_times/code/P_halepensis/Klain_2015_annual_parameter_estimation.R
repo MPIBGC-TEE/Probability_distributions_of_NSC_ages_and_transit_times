@@ -1,43 +1,46 @@
-## Parameter estimation for the the model presented in Fig 1 of the manuscript "Non-structural
-## carbon ages and transit times provide insights in carbon allocation dynamics of mature trees
+## Here we present the code for the parameter estimation for the the model presented in Fig. 1 of 
+## the manuscript "Non-structural carbon ages and transit times provide insights in carbon allocation 
+## dynamics of mature trees
 
-### the process is based in the information provided by Klein and Hoch, 2015, 
-### Tree carbon allocation dynamics determined using a carbon mass 
-### balance approache. New phytologis.                                                    ###
+### the process is based in the information provided by Klein and Hoch (2015), 
+### Klein, T. & Hoch, G. 2015. Tree carbon allocation dynamics determined using a carbon mass 
+### balance approach. New Phytologist 205: 147-159.                                                    ###
 #############################################################################################
 
-## 1. defining the fluxes (gC per tree d^-1)
+## For estimating the parameters we followed the next steps:
 
-## A:   Net Assumilation 
+## 1. Defining the fluxes (gC per tree per day)
+
+## A:   Net Assimilation 
 ## Rf:  Foliage respiration 
-## Rs:  stem respiration
-## Rr:  roots respiration
-## Gf:  foliage growth in biomass
-## Gs:  stem growth in biomass
-## Gr:  Root growth in biomass
-## Lf:  litter from the floliage 
-## Ls:  litter from the stem + litter from cones
-## Lr:  litter for roots + carbon export 
-## STf: storage in foliage
-## STs: storge in stem
-## STr: storage in roots
-## Cf:  consumption from storage in foliage
-## Cs:  consumption from storage in stem
-## Cr:  consumption from storage in roots 
-## FtoS: flux from foliage to stem
-## StoF: flux from stem to foliage
-## Stor: flux from stem to roots
-## rtoS: flux from root to stem 
+## Rs:  Stem respiration
+## Rr:  Roots respiration
+## Gf:  Foliage biomass growth
+## Gs:  Stem biomass growth
+## Gr:  Root biomass growth 
+## Lf:  Litter from the floliage 
+## Ls:  Litter from the stem + litter from the cones
+## Lr:  Litter from roots + carbon export to the soil 
+## Sf:  Storage in foliage
+## Ss:  Storge in stem
+## Sr:  Storage in roots
+## Cf:  Allocation from storage to soluble sugars in foliage
+## Cs:  Allocation from storage to soluble sugars in stem
+## Cr:  Allocation from storage to soluble sugars in roots 
+## FtoS: Allocation from foliage to stem
+## StoF: Allocation from stem to foliage
+## Stor: Allocation from stem to roots
+## rtoS: Allocation from root to stem 
 
-## 2. defining the pools (gC per tree)
+## 2. Defining the general carbon pools in a tree (gC per tree)
 
 ## F:  foliage 
 ## S:  stem
 ## r:  root
-## St: starch
-## SS: soluble sugars 
+## St: starch (or storage)
+## SS: soluble sugars (or active pool) 
 
-## 3. Pools in the 9 pool system to represent a tree
+## 3. Defining the Pools specific compartments in a tree
 
 ## Fss:   foliage soluble sugars 
 ## Fst:   foliage starch 
@@ -49,24 +52,23 @@
 ## rst:   root starch
 ## rbiom: root structural carbon 
 
-## 4. differential ecuations based on the fluxes 
+## 4. Differential ecuations based on the fluxes and the carbon balance approach used in the paper 
 
-# dFss=   A+Cf+StoF-STf-FtoS-Gf-Rf
-# dFst=   STf-Cf
+# dFss=   A+Cf+StoF-Sf-FtoS-Gf-Rf
+# dFst=   Sf-Cf
 # dFbiom= Gf-Lf
-# dSss=   FtoS+rtoS+Cs-StoF-Stor-STs-Gs-Rs
-# dSst=   STs-Cs
+# dSss=   FtoS+rtoS+Cs-StoF-Stor-Ss-Gs-Rs
+# dSst=   Ss-Cs
 # dSbiom= Gs-Ls
-# drss=   Stor+Cr-rtoS-STr-Gr-Rr
-# drst=   STr-Cr
+# drss=   Stor+Cr-rtoS-Sr-Gr-Rr
+# drst=   Sr-Cr
 # drbiom= Gr-Lr
 
-## the size of the pools is calculated by the size of the pool one unit of time before (Px(t-dt))
-## plus de differentialsize of the pool dP given by the ecuations above. 
 
-## 5. writing the differencial ecualtions above in transfer coeficients, designated by the letter P
-## before the flux name. The transfer coeficient are calculate dividing the pool each flux by the
-## size of the donor pool. 
+## 5. Writing the differencial ecualtions above in terms of the transfer coefficients, designated by the letter P
+##    before each flux name. The transfer coefficients are calculate dividing each flux by the
+##    size of the donor pool. Therfore each flux is equivalent to the corresponding transfer coefficient multiplied by the size 
+##    of the pool as shown below. 
 
 # dFss=   A+PCf*(Fst)+PStoF*(Sss)-PSTf*(Fss)-PFtoS*(Fss)-PGf*(Fss)-PRf*(Fss)
 # dFst=   PSTf*(Fss)-PCf*(Fst)
@@ -78,10 +80,10 @@
 # drst:   PSTr*(rss)-PCr*(rst)
 # drbiom: PGr*(rss)-PLr*(rbiom)
 
-## 6. writing the ecuations in the form X'(t)=Bu(t)+A*E(t)*K*X(t)
-## X'(t) is "dp" and is the vector of the differential quantities  
+## 6. writing the ecuations in the general form X'(t)=B*u(t)+A*E(t)*K*X(t)
+## X'(t) is the vector of the differential quantities defined in the point 4, it is defined as "dp" below.
 ## B is the allocation vector
-## A*K is the matrix with the proportions of incomes and outcomes of C from each pool 
+## A*K is the matrix with the trasnfer coefficients of carbon between pools
 ## E(t) is the environmental factor that affects the fluxes 
 ## X(t) is the vector of pool sizes called Px here 
 
@@ -106,7 +108,7 @@
 ### set working directory 
 setwd("/Users/_dherrera/NSC_ages_and_transit_times/code/P_halepensis/")
 
-##annual carbon fluxes provided by Klein and Hoch 2015 (g/tree/yr)
+## Annual carbon fluxes provided by Klein and Hoch 2015 (g/tree/yr)
 
 annualfluxes= c(A=24463, Rf=4222,Rs=2246,Rr=10074, Gf=2037, Gs=1120, Gr=834, Lf=1943, Ls=92+114, Lr=840)
 
@@ -120,7 +122,7 @@ A=24463
 Totals_per_tree["ST"]=with(as.data.frame(t(Totals_per_tree)), A-R-G-L)
 
 ## monthly respiration flux by tree based in the Fig 3 of Klein and Hoch 2015 for an indiviual tree
-### units are g/tree/day
+### the units are g/tree/day
 
 monthlyfluxes_Tree=data.frame(month=c("Oct","Nov","dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Agu","Sep"), 
                          A=c(28.1, 33.1, 46, 84.9, 112.5, 147.8, 131.5, 72.5, 42.6, 29.8, 27.6, 27.6),
@@ -154,8 +156,8 @@ monthlyfluxescompart2=data.frame(
                                 rtoS=c(0,0,0,0,0,0,0,0,0,0, 6.8,0))
 rownames(monthlyfluxescompart2)=c("Oct","Nov","dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Agu","Sep")
 
-## the allocation to storage or consumption from storage is calcualted using the mass balance approache 
-## proposed in Klein and Hoch 2015
+## the allocation to storage or from storage is calcualted using the mass balance approache 
+## proposed in Klein and Hoch 2015. This is how the Sf, Ss, Sr, Cf, Cs and Cr were calculated
 
 monthlyfluxescompart2=data.frame(monthlyfluxescompart2,
                                 MSf2=with(monthlyfluxescompart2, A-Rf-Gf-Lf-FtoS+StoF),
@@ -185,9 +187,9 @@ rownames(monthlyfluxescompart2)=c("Oct","Nov","dec","Jan","Feb","Mar","Apr","May
 
 Annualfluxescompart=colSums(monthlyfluxescompart2*30) ## units gC/tree/year
 
-## next we estimate the size of the carbon Carbon pools gC per tree 
+## next we estimated the size of the carbon Carbon pools gC per tree 
 ## the initial values for october (Poct) are given in the Table 2 klein and Hoch 2015 
-## the rest of the moths are calculated based on the fluxes
+## the rest of the months are calculated based on the fluxes estimated above and the balance equations for each pool. 
 
 Poct=c(Fss=146, Fst=116, Fbiom=5558, Sss=3751, Sst=2020, Sbiom=51934, rss=754, rst=548, rbiom=12399)
 
@@ -216,23 +218,17 @@ for (i in 2:nrow(dstock)) {
 colnames(Monthlystock)=c("Fss", "Fst", "Fbiom", "Sss", "Sst", "Sbiom", "rss", "rst", "rbiom")
 rownames(Monthlystock)=c("Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Agu","Sep")
 
-plot(seq(1,12,1), Monthlystock$rss)
-lines(seq(1,12,1), Monthlystock$rss)
+
+## the transfer coefficients of the matrix B are calculated dividing every flux in the 
+## corresponding pool size (flux/pool; (gC/tree d^-1) / (gC/tree)) 
 
 
-## the transfer coeficients of the matrix B are calculated dividin every flux in the 
-## corresponding sock (flux/stock; (gC/tree d^-1) / (gC/tree)) 
-
-## for this we need
-# Monthlystock ### units gC/tree
-# monthlyfluxescompart2 ## units gC/tree day-1
-
-# which we calcualted above 
-
-## we exclude the input A and tasnform the daily values to monthly values multiplying by 30
+## from the monthly fluxes calculated above we excluded the input A and tasnformed them daily values to monthly 
+## values multiplying by 30
 monthlyfluxescompart3=monthlyfluxescompart2[,-c(1)]*30 ## gC/tree month^-1
 
-## then we calculate the mean transfer rates between pools
+## then we calculate the mean transfer rates between pools dividing each flux by the donor pool. 
+
 monthlyrates2=with(monthlyfluxescompart3, data.frame(PRf=Rf/Monthlystock$Fss,PRs=Rs/Monthlystock$Sss, PRr=Rr/Monthlystock$rss,
                                             PGf=Gf/Monthlystock$Fss, PGs=Gs/Monthlystock$Sss, PGr=Gr/Monthlystock$rss,
                                             PLf=Lf/Monthlystock$Fbiom, PLs=Ls/Monthlystock$Sbiom, PLr=Lr/Monthlystock$rbiom,
@@ -255,13 +251,16 @@ save(pars1,file="pars1.Rda")
 
 ################# lower and upper limits of the parameters #######################################################
 
-################# the lower limit of each parameter was read from te paper klein and hoch 2015 fig 5 and fig 8####
+################# the lower limit of each parameter was read from the fig 5 and fig 8 in the paper Klein and Hoch 2015 ####
 
-##LOWER LIMIT
-load("sd_monthlyfluxes.Rda")## this is a file with the standard errors of each fluxes, reported in Klein and Hoch 2015
+##LOWER LIMIT COMPUTATIONS
+
+load("sd_monthlyfluxes.Rda")## this is a file with the standard errors of each fluxes,they are reported in Klein and Hoch 2015
 
 LWLImonthlyfluxescompart2=monthlyfluxescompart2[,c(1:14)] - sd_monthlyfluxescompart2
 
+# then we needed to calculate the standard errors for the estimated fluxes Sf, Sf, Sr, Cs, Cr and Cf that are
+# not reported in the original paper. We applied the same balance approach principle as before. 
 LWLImonthlyfluxescompart2=data.frame(LWLImonthlyfluxescompart2,
                                  MSf2=with(LWLImonthlyfluxescompart2, A-Rf-Gf-Lf-FtoS+StoF),
                                  MSs2=with(LWLImonthlyfluxescompart2, FtoS+rtoS-Rs-Gs-Ls-Stor-StoF)
