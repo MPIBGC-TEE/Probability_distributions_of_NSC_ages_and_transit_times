@@ -1,17 +1,20 @@
-##### Uncertainty and Sensitivity analysis for the NSC mean age and mean transti time of Pinus halepensis
+##### Uncertainty and Sensitivity analysis for the NSC mean ages and mean transti times of Pinus halepensis
 
-## load the necesary packages 
+## load the necessary packages 
 library(SoilR)
 library(sensitivity)
 library(boot)
 library(FME) 
 library(ggplot2)
-setwd("/Users/_dherrera/NSC_ages_and_transit_times/code/P_halepensis/")
 
-source("/Users/_dherrera/NSC_ages_and_transit_times/code/P_halepensis/Functions_Phalepensis.R")
+## set the rigth working directory
+setwd("/Users/_dherrera/NSC_ages_and_transit_times/NSC_ages_and_transit_times/code/P_halepensis/")
 
-## we load the files we need for the computations in this script. This parameters and their
-## upper and lower limits where calculates in the script "Klain_2015_annual_parameter_estimation.R"
+## source the function for this model. 
+source("Functions_Phalepensis.R")
+
+## we load the files we need for the computations in this script. The computations for this parameters and their
+## upper and lower limits are in the script "Klain_2015_annual_parameter_estimation.R"
 
 load("pars1.Rda")
 load("LWLImeanannualrates4.Rda")
@@ -23,7 +26,7 @@ load("UPLImeanannualrates4.Rda")
 ############# Sensitivity Analysis#######################################################
 ############################################################################################
 
-### sensibility analysis was run based on the Elementary Effects technique (Morris 1992). This technique
+### sensitivity analysis was run based on the Elementary Effects technique (Morris 1992). This technique
 ### is implemented in the sensitivity package. 
 
 fluxnames= c("Rf","Rs","Rr","Gf","Gs","Gr",  
@@ -117,6 +120,8 @@ dev.off()
 ################################################################################################
 ################################################################################################
 
+## this analysis was based on a Monte Carlo Simulation function from the FME package.
+
 #We defined the fluxes names as they appear in the manuscript
 fluxnames= c("Rf","Rs","Rr","Gf","Gs","Gr",  
              "Lf","Ls","Lr","FtoS","StoF","Stor",
@@ -125,7 +130,7 @@ fluxnames= c("Rf","Rs","Rr","Gf","Gs","Gr",
 # We calculated the variability limits for the parameters reported by Klein and Hoch 2015
 pars_range=(pars1- LWLImeanannualrates4)
 
-## the parameters should be trasnformed into a list for the MCS function from FME package 
+## the parameters should be sotored as a list for the MCS function from FME package 
 pars1_l=list()
 for(i in 1:length(pars1)){
 pars1_l[i]=pars1[i]  
@@ -137,6 +142,8 @@ names(pars1_mean)=fluxnames
 
 
 systage_MCS(pars1_l)## test for the mean ages and transit time of the mean parameter values
+
+## define the upper and lower limit for the parameters. 
 lw=as.numeric(pars1-pars_range)
 lw[lw<0]=0
 up=as.numeric(pars1 + pars_range)
@@ -145,12 +152,12 @@ parRanges=cbind(lw, up)
 rownames(parRanges) = fluxnames
 
 ## The Monte Carlo simulation was run to propagete the uncertainty of the model parametes in the 
-## mean age and mean transti time of P. halepensis. This analysis is run just for the 4 parameters
-## that showed the biggest influence in the model output. 
+## mean age and mean transti time of P. halepensis. This analysis was run just for the 4 parameters
+## that showed the biggest influence in the model output, determined by the sensitivity analysis. 
 
 ## This function calculate 1000 model realization with different combination of the model parameters
-## selected. It takes a very long time to run and sometimes fail when some negative values for the 
-## parameters are ramdomly chosen.
+## selected. It takes a very long time to run so we provide the results from our simulation below 
+## after the commented code.
 
 # 
 # CRL4 <- modCRL(func = systage_MCS, parms = pars1_l, parMean = pars1_mean[c(3,12,16,18)],
@@ -168,6 +175,7 @@ sd_Phalep_meanage=apply(uncertianties_meanarebypool,2,sd)
 mean_Phalep_meanage=apply(uncertianties_meanarebypool,2,mean)
 rbind(mean_Phalep_meanage, sd_Phalep_meanage)
 
+##plotting the results
 
 CRL4=uncertianties_meanarebypool
 png("phalepensis_meanSysAgebypool_uncertianty.png",

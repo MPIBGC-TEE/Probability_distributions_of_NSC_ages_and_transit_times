@@ -1,8 +1,10 @@
-#### functions to run the script Uncertainty and sensitivity analuysis for P. halepensis based on
-#### Klein and Pacala 2015. 
+#### functions to run the script Uncertainty and sensitivity analyses for P. halepensis based on the paper
+#### Klein, T. & Hoch, G. 2015. Tree carbon allocation dynamics determined using a carbon mass 
+#### balance approach. New Phytologist 205: 147-159.  
 
 
-## modelkain1 is a function to run the Generalmodel_14 model from SoilR. 
+## modelklain1 is a function to run the Generalmodel_14 function from SoilR using the transfer 
+## coefficient matrix (B) for the Klein and Hoch 2015 model. 
 
 modelklain1 = function(years, pars, input, b, F0, AtmFc, ivList, k){
  
@@ -40,8 +42,10 @@ modelklain1 = function(years, pars, input, b, F0, AtmFc, ivList, k){
 }
 
 
-### MatrixAC construnct the matrix B for the model base in the transfer coeficients provides 
-### in a dataframe where the transfer coeficients are placed in the columns and the values in the rows
+### MatrixAC construnct the matrix B for the model. This matrix contains the transfer coefficients between pools
+### for a specific model. This coefficients should be provided in a dataframe where the transfer 
+### coefficients are placed in the columns and the values in the rows.
+
 matrixAC= function (pars) {
     
 m = with(pars, matrix(c(-PSf-PFtoS-PGf-PRf, PCf,   0  , PStoF                    , 0   , 0   , 0                  , 0   , 0,
@@ -61,8 +65,9 @@ return (m)
 }
 
 
-#### Systage_MSC is a function to estimate the mans age and mean transit time for the entire system 
-#### and for each pool for trees of P.halepensis. 
+#### systage_MSC is a function to estimate the mean ages and mean transit times for a specific model,
+#### P.halepensis in this case. This function produces a data frame where the mean age and mean transit time
+#### are shown for each carbon pool and for the overall NSC system. 
 
 systage_MCS=function(parsatm){
   tau=seq(0,200)
@@ -102,8 +107,10 @@ systage_MCS=function(parsatm){
 
 
 
-## function to estimate the mean age and mean transity time of the trees using a set of possible 
-## combinations of parameters. 
+## systage is a function to estimate the mean age and mean transit times for the P. halepensis model
+## using different possible combinations of parameters values. Here parsatm is a dataframe where each row represent 
+## a different combination of the parameter values for the model. This is used in the sensitivity analysis 
+## to calcualte how numerical changes in some parameter values affect the mean ages and mean transit times. 
 
 systage=function(parsatm){
   tau=seq(0,200)

@@ -9,8 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Paramogle is the dataset of the parameters provided for Ogle and Pacala (2009) for running the model ACGCA and estimating the parameter for the model presented in the figure 2. the vector was contructed with the mean values for P. taeda (first row) and A. rubrum (second row). From here on we will just use the parameters corresponding to A. rubrum. 
-
+This document present the calculations related to the parameter values estimation, uncertainty and sensitivity analysis for the model corresponting to A. rubrum, detailes in the Figure 2 of the manuscript "Probability distributions of non-structural carbon ages and transit times provide insights on carbon allocation dynamics of mature trees" 
 
 ### packages needed 
 ```{r}
@@ -20,17 +19,17 @@ library(FME)
 library(sensitivity)
 ```
 
-set the directory where all the auxiliary files are stored. The functions for running the ACGCA model are in the sicript "script_functions_model_ogleV2.R" 
+set the directory where all the auxiliary files are stored. The functions for running the ACGCA model are in the sicript "script_functions_model_ogleV2.R", This script should be sourced.  
 
 ```{r}
-setwd("/Users/_dherrera/NSC_ages_and_transit_times/code/A_rubrum/")
-source("/Users/_dherrera/NSC_ages_and_transit_times/code/script_functions_model_ACGCA.R")
+setwd("/Users/_dherrera/NSC_ages_and_transit_times/NSC_ages_and_transit_times/code/A_rubrum/")
+source("/Users/_dherrera/NSC_ages_and_transit_times/NSC_ages_and_transit_times/code/script_functions_model_ACGCA.R")
 
 ```
 
-## A. rubrum parameter calculation 
+## A. rubrum parameter values computations 
 
-Paramogle is the dataset of the parameters provided for Ogle and Pacala (2009) for running the model ACGCA and estimating the parameter for the model presented in the figure 2. the vector was contructed with the mean values for P. taeda (first row) and A. rubrum (second row). From here on we will just use the parameters corresponding to A. rubrum. 
+We wrote down the parameters provided for Ogle and Pacala (2009) and placed them in a data frame called paramogle. These parameters are used for running the model ACGCA and estimating the parameters for the model presented in the mentioned figure 2 of the manuscript. the data frame was contructed with the mean values for P. taeda (first row) and A. rubrum (second row). From here on we will just use the parameters corresponding to A. rubrum. 
 
 
 
@@ -78,7 +77,7 @@ paraPtadea=paramogle[2,] ### here we choosed the parameters for A. rubrum.
 ```
 
 
-Then we ran the ACGCA model for 800 years (niter) to assure that we selected the parameters corresponding to a steady state condition for A. rubrum. 
+Then we ran the ACGCA model for 800 years (niter) to assure that we selected the parameters corresponding to a steady state condition for A. rubrum. This simulation can take time, therefore we provide the result in the loaded file "respArubrum_Pmax.Rda"
 
 ```{r}
 
@@ -102,29 +101,29 @@ Then we calculated the fluxes, the pool sizes and the stransfer coeficients for 
 flux300yr=respPtadea4[which(respPtadea4$t==700),] 
 
 
-## With this values we proceeded to calculate the transfer coeficients for the model used in the manuscript and described in Figure 2
+## With these values we proceeded to calculate the transfer coeficients for the model used in the manuscript and described in Figure 2
 
 E=flux300yr$E+flux300yr$Rm ##g of glucose 
 
 ## fluxes for leave compartment 
 
 PFlT=flux300yr$Fl*flux300yr$E; ## PFlT is the amount of g glucose allocated to leaves 
-SsL=PFlT # SsL is the fast cycling pool of sugars in the leaves, and 
+SsL=PFlT # SsL is the fast cycling pool of sugars in the leaves
 Gl=PFlT*(paraPtadea["Cgl"]/(paraPtadea["Cgl"]+paraPtadea["dl"])); Gl### grams of glucose per year invested in constructing leaves (flux of glucose to grow leaves)
 FB=flux300yr$Bl## biomass (g dw) in the leaves 
 biomlgdw=PFlT/(paraPtadea["Cgl"]+paraPtadea["dl"]); biomlgdw## grams of wood constructed from the allocated carbon to leaves
 stl=PFlT*(paraPtadea["dl"]/(paraPtadea["Cgl"]+paraPtadea["dl"])); stl## grams of glucose per year stored in the leaves 
 senlTgdw=paraPtadea["Sl"]*flux300yr$Bl; senlTgdw## g of wood lost in litter fall per year 
-senlT=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["Cgl"] ## g of gluc per year lost in the litter fall 
-dlSl=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["dl"]; dlSl ##g gluc per year translocated to the E pool from the storage
+senlT=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["Cgl"] ## g of glucose per year lost in the litter fall 
+dlSl=paraPtadea["Sl"]*flux300yr$Bl*paraPtadea["dl"]; dlSl ##g of glucose per year translocated to the E pool from the storage
 FSNSC=flux300yr$Cl ## size of the storage pool in the leaves 
 
 
 ## fluxes for fine root compartment 
-PFrT=flux300yr$Fr*flux300yr$E; PFrT## amount of g glucose allocated to roots per year 
-Ssr=PFrT ## g gluc in the fast cycling pool of sugar in the roots
-Gr=PFrT*(paraPtadea["Cgr"]/(paraPtadea["Cgr"]+paraPtadea["dr"])); Gr## grams of wood constructed from the allocated carbon to roots
-biomrgdw=PFrT/(paraPtadea["Cgr"]+paraPtadea["dr"]); biomrgdw## grams of wood constructed from the allocated carbon to roots
+PFrT=flux300yr$Fr*flux300yr$E; PFrT## amount of g of glucose allocated to roots per year 
+Ssr=PFrT ## g glucose in the fast cycling pool of sugar in the roots
+Gr=PFrT*(paraPtadea["Cgr"]/(paraPtadea["Cgr"]+paraPtadea["dr"])); Gr## grams of glucoes allocated to biomass in roots
+biomrgdw=PFrT/(paraPtadea["Cgr"]+paraPtadea["dr"]); biomrgdw## grams of dry wood constructed from the allocated carbon to roots
 strr=PFrT*(paraPtadea["dr"]/(paraPtadea["Cgr"]+paraPtadea["dr"])); strr## grams of glucose per year stored in the roots 
 senrTgdw=paraPtadea["Sr"]*flux300yr$Br## g of wood lost in senescence of fine roots 
 senrT=paraPtadea["Sr"]*flux300yr$Br*paraPtadea["Cgr"] ## g of glucose lost in senescence of fine roots 
@@ -141,19 +140,19 @@ SB=flux300yr$Bts+flux300yr$Bth ## g of wood in the trunk (biomase of the main tr
 strt=PFtT*(flux300yr$ds/(paraPtadea["Crw"]+flux300yr$ds))## grams of glucose per year allocated to storage in the trunk 
 
 ## fluxes for other wood compartment (branches and coarse roots)
-PFoT=flux300yr$Fo*flux300yr$E; PFoT## amount of g glucose allocated to other woody compartments per year 
+PFoT=flux300yr$Fo*flux300yr$E; PFoT## amount of g glucose allocated to branches and coarse roots per year 
 SsO=PFoT ## size of the fast cycling pool of branches and coarse roots  in g of glucose
 Go=PFoT*(paraPtadea["Crw"]/(paraPtadea["Crw"]+flux300yr$ds))### grams of glucose per year invested in constructing branches and coarse roots
 Bo=flux300yr$Bos+flux300yr$Boh ## g of wood in the branches and coarse root
-senoTgdw=PFoT/(paraPtadea["Crw"]+flux300yr$ds)#g of wood per year lost to close steady state
-senoT=PFoT/(paraPtadea["Crw"]+flux300yr$ds)*paraPtadea["Crw"]## g of glucose lost to close steady state
+senoTgdw=PFoT/(paraPtadea["Crw"]+flux300yr$ds)#g of wood per year lost in litter fall
+senoT=PFoT/(paraPtadea["Crw"]+flux300yr$ds)*paraPtadea["Crw"]## g of glucose lost in litter fall
 stro=PFoT*(flux300yr$ds/(paraPtadea["Crw"]+flux300yr$ds))## g of glucose per year allocated to storage inthe wood
-So=(PFoT/(paraPtadea["Crw"]+flux300yr$ds))/Bo## g of wood per year lost in litter fal from branches and coarse roots 
-dsSo=flux300yr$ds*So*flux300yr$Bos### g of gluc per year retranslocated to E from branches and coarse roots 
-dwSo=strt+stro-dsSo## g of gluc per year lost in litterfall 
+So=(PFoT/(paraPtadea["Crw"]+flux300yr$ds))/Bo## g of wood per year lost in litter fall from branches and coarse roots 
+dsSo=flux300yr$ds*So*flux300yr$Bos### g of glucose per year retranslocated to E from branches and coarse roots 
+dwSo=strt+stro-dsSo## g of gluc per year from the carbon sotorage compartment lost in litterfall  
 SSNSC=flux300yr$Cs## glocose stored in wood of branches and coarse roots
 
-### calculation os the rates, parameters to use the matricial form of the model 
+### calculation of the carbon transfer coefficients, the parameters of our model described in Fig.2.  
 
 ratesPtadea=c(Rm=as.numeric(flux300yr$Rm/E),
               Fl=as.numeric(PFlT/E),
@@ -178,7 +177,7 @@ ratesPtadea=c(Rm=as.numeric(flux300yr$Rm/E),
               PdwSo=as.numeric(dwSo/flux300yr$Cs)
 )
 
-ratesPtadea=as.data.frame(t(ratesPtadea)) ### this are the parameters o run the model in Fig 2 and obtain the results for A. rubrum shown in the manuscript. This parameter were used in the phyton script (A.rubrum_ages_and_transit_times.ipynb) for the computation of ages and transit times. 
+ratesPtadea=as.data.frame(t(ratesPtadea)) ### this are the parameters to run the model in Fig 2 and obtain the results for A. rubrum shown in the manuscript. These parameters were used in the phyton script (A.rubrum_ages_and_transit_times.ipynb) for the computation of ages and transit times. 
 ```
 
 ## Sensitivity Analysis 
@@ -211,12 +210,12 @@ ratesPtadea2=c(Rm=as.numeric(flux300yr$Rm/E),
 
 ```
 
-Load the functions for sensitivity and uncertainty analysis 
+Load the functions for sensitivity and uncertainty analyses 
 ```{r}
-source("/Users/_dherrera/NSC_ages_and_transit_times/code/script_function_senes_uncert_ACGCA.R")
+source("/Users/_dherrera/NSC_ages_and_transit_times/NSC_ages_and_transit_times/code/script_function_senes_uncert_ACGCA.R")
 ```
 
-The sensititvity analysis based on the Elementary Effect (Morrist 1991) was run using the function morris from the FME package  
+The sensitivity analysis based on the Elementary Effect (Morrist 1991) was run using the function morris from the FME package  
 ```{r}
 
 sensmeanage1 <- morris(model = systageogleV2, factors = names(ratesPtadea2), r = 100, binf = ratesPtadea2*0.1,
@@ -360,7 +359,7 @@ rownames(paramogle_range)=c("mean", "min", "max")
 ```
 
 
-We prepared the parameters to feer the function modCRL for the Monte Carlo Simulations (MCS) and run the model to propagate the uncertainty from the ACGCA model parameters provided by Klein and Hoch 2009 to the compartmental model presented in figure 2 of te manuscript. 
+We prepared the parameters to run the function modCRL for the Monte Carlo Simulations (MCS) and run the model to propagate the uncertainty from the ACGCA model parameters provided by Ogle and Pacala 2009 to the parameters of the compartmental model presented in the figure 2 of te manuscript. 
 
 ```{r}
 pars1_l=list()
@@ -419,7 +418,7 @@ Now we progapate this uncertainties to our model output
 
 ```{r}
 
-## we prepare again the list of model parameters to feed the modCRK function 
+## we prepared again the list of model parameters to run the modCRK function 
 
 pars1_l2=list()
 for(i in 1:length(mean_transfer_coeficients)){
