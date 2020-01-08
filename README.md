@@ -1,13 +1,10 @@
----
-title: Probability distributions of non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees
+
+#title: Probability distributions of non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees
+
 author: "David_Herrera"
 date: "1/5/2020"
-output: html_document
----
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 In this repository you will find the code used to compute the results published in the manuscript "Probability distributions of non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees"
 
