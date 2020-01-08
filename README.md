@@ -1,5 +1,5 @@
 
-#title: Probability distributions of non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees
+## title: Probability distributions of non-structural carbon ages and transit times provide insights in carbon allocation dynamics of mature trees
 
 author: "David_Herrera"
 date: "1/5/2020"
